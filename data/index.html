@@ -765,8 +765,8 @@
 
 
 	<script>
-		// let user_collection_url = "user_url";
-		let user_collection_url = "https://learn.api.stdlib.com/test-radio@dev/";
+		let user_collection_url = "user_url";
+		// let user_collection_url = "https://learn.api.stdlib.com/test-radio@dev/";
 		// console.log('user_collection_url:', user_collection_url);
 	</script>
 	<script>
@@ -930,7 +930,6 @@
 
 		function addChannel(e) {
 
-			console.log(e);
 			let channel_name = el('#modal-channel-name-input').value;
 
 			if (channel_name && new_channel.items.length > 0) {
@@ -1249,15 +1248,18 @@
 		function getItems() {
 			axios({
 
-				url: user_collection_url + '/stations',
+				url: user_collection_url + 'stations',
 				method: "GET"
 			})
 				.then(result => {
-					console.log('result', result.data);
+					// console.log('result', result.data);
 					// Empty state check
 					collection = result.data;
 
-					if (!collection) {
+					if (collection && collection.list) {
+						console.log('collection', collection);
+					} else {
+						console.log('else', collection);
 						collection = {};
 						collection.list = [];
 						collection.settings = {};

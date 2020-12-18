@@ -1,78 +1,38 @@
-// const verifier = require('alexa-verifier');
+const verifier = require('alexa-verifier');
 
 const db = require('lib')({ token: process.env.STDLIB_SECRET_TOKEN }).utils.kv;
 
 // Global variable of collection
-let collection;
 let user_url = '';
 
-const Alexa = {
+class AlexaResponses {
+  constructor() {
+    this.version = "1.0";
+    this.response = {};
+  }
 
-  getResponse: (responseObject, sessionAttributes = {}) => {
-
-    let response = {};
-
-    if (responseObject) {
-
-      if (responseObject.speak) {
-        response.outputSpeech = responseObject.speak;
-      }
-
-      if (responseObject.prompt) {
-        response.reprompt = responseObject.prompt;
-      }
-
-      if (responseObject.audioPlay || responseObject.audioQueue || responseObject.audioStop) {
-        response.directives = responseObject.audioPlay || responseObject.audioQueue || responseObject.audioStop;
-      }
-
-      response.shouldEndSession = (responseObject.prompt) ? false : true
-
-      let res = {
-        "version": "1.0",
-        "response": response,
-        "sessionAttributes": sessionAttributes
-      };
-
-      // console.log('res', res);
-      return res;
-
-    } else {
-      let blank_res = {
-        "version": "1.0",
-        "response": {}
-      };
-
-      // console.log('blank res', res);
-      return blank_res;
-    }
-
-  },
-
-  speak: (speech) => {
-
-    let res = {
+  speak(speech) {
+    this.response.outputSpeech = {
       "type": "SSML",
       "ssml": `<speak>${speech}</speak>`
     }
 
-    return res;
+    return this;
+  }
 
-  },
-
-  prompt: (speech) => {
-
-    return {
-      "outputSpeech": {
+  prompt(speech) {
+    this.response.reprompt = {
+      outputSpeech: {
         "type": "SSML",
         "ssml": `<speak>${speech}</speak>`
       }
     }
-  },
 
-  withSimpleCard: (title, content, image_url) => {
-    return {
+    return this;
+  }
 
+  card(title, content = '', image_url = '') {
+    this.response.card = {
       "type": "Standard",
       "title": `${title}`,
       "content": `${content}`,
@@ -82,147 +42,410 @@ const Alexa = {
         "largeImageUrl": `${image_url}`
       }
     }
-  },
+    return this;
+  }
 
-  audioHandler: {
+  play(user_url, url, offset = 0, token) {
 
-    play: (url, offset = 0, token) => {
+    let station;
+    let channel;
 
-      let station;
-      let channel;
+    if (token) {
+      station = token.split(':')[0];
+      channel = token.split(':')[1];
+    } else {
+      token = " "
+    }
 
-      if (token) {
-        station = token.split(':')[0];
-        channel = token.split(':')[1];
-      } else {
-        token = " "
-      }
-
-      return [
-        {
-          "type": "AudioPlayer.Play",
-          "playBehavior": "REPLACE_ALL",
-          "audioItem": {
-            "stream": {
-              "url": `${url}`,
-              "token": token,
-              "offsetInMilliseconds": `${offset}`
+    this.response.directives = [
+      {
+        "type": "AudioPlayer.Play",
+        "playBehavior": "REPLACE_ALL",
+        "audioItem": {
+          "stream": {
+            "url": `${url}`,
+            "token": token,
+            "offsetInMilliseconds": `${offset}`
+          },
+          "metadata": {
+            "title": station,
+            "subtitle": channel,
+            "art": {
+              "sources": [
+                {
+                  "url": `${user_url}assets?asset=station`
+                }
+              ]
             },
-            "metadata": {
-              "title": station,
-              "subtitle": channel,
-              "art": {
-                "sources": [
-                  {
-                    "url": `${user_url}assets?asset=station`
-                  }
-                ]
-              },
-              "backgroundImage": {
-                "sources": [
-                  {
-                    "url": `${user_url}assets?asset=background`
-                  }
-                ]
-              }
+            "backgroundImage": {
+              "sources": [
+                {
+                  "url": `${user_url}assets?asset=background`
+                }
+              ]
             }
           }
         }
-      ]
-    },
-
-    stop: () => {
-      return [
-        {
-          "type": "AudioPlayer.Stop"
-        }
-      ]
-    },
-
-    queue: (url, offset, token, previous_token) => {
-
-      let station;
-      let channel;
-
-      if (token) {
-        station = token.split(':')[0];
-        channel = token.split(':')[1];
-      } else {
-        token = " "
       }
+    ]
 
-      if (offset == undefined) {
-        offset = 0
+    return this;
+  }
+
+  stop() {
+    this.response.directives = [
+      {
+        "type": "AudioPlayer.Stop"
       }
+    ]
+    this.response.shouldEndSession = true;
+    return this;
+  }
 
-      if (previous_token == undefined) {
-        previous_token = token
-      }
+  queue(user_url, url, offset, token, previous_token) {
+    let station;
+    let channel;
 
-      return [
-        {
-          "type": "AudioPlayer.Play",
-          "playBehavior": "ENQUEUE",
-          "audioItem": {
-            "stream": {
-              "url": url,
-              "token": token,
-              "expectedPreviousToken": previous_token,
-              "offsetInMilliseconds": offset
+    if (token) {
+      station = token.split(':')[0];
+      channel = token.split(':')[1];
+    } else {
+      token = " "
+    }
+
+    if (offset == undefined) {
+      offset = 0
+    }
+
+    if (previous_token == undefined) {
+      previous_token = token
+    }
+
+    this.response.directives = [
+      {
+        "type": "AudioPlayer.Play",
+        "playBehavior": "ENQUEUE",
+        "audioItem": {
+          "stream": {
+            "url": url,
+            "token": token,
+            "expectedPreviousToken": previous_token,
+            "offsetInMilliseconds": offset
+          },
+          "metadata": {
+            "title": station,
+            "subtitle": channel,
+            "art": {
+              "sources": [
+                {
+                  "url": `${user_url}assets?asset=station`
+                }
+              ]
             },
-            "metadata": {
-              "title": station,
-              "subtitle": channel,
-              "art": {
-                "sources": [
-                  {
-                    "url": `${user_url}assets?asset=station`
-                  }
-                ]
-              },
-              "backgroundImage": {
-                "sources": [
-                  {
-                    "url": `${user_url}assets?asset=background`
-                  }
-                ]
-              }
+            "backgroundImage": {
+              "sources": [
+                {
+                  "url": `${user_url}assets?asset=background`
+                }
+              ]
             }
           }
         }
-      ]
+      }
+    ]
+
+    return this;
+  }
+}
+
+class Collection {
+  constructor() {
+    this.list = [];
+    this.resume = {};
+    this.settings = this.defaultSettings();
+  }
+
+  defaultSettings() {
+    let default_settings = {
+      responses: {
+        now_playing: [
+          'This is'
+        ],
+        help_playing: [
+          'Tell me a station name to play'
+        ],
+        next_playing: [
+          'Next up is'
+        ],
+        stop_playing: [
+          'Goodbye'
+        ],
+        error_playing: [
+          'Somethng went wrong'
+        ],
+        no_data: [
+          "You don't have any saved channels. Go to web page to add a channel."
+        ]
+      }
+    }
+
+    return default_settings;
+  }
+
+  load(data) {
+    if (data) {
+      this.list = data.list || [];
+      this.resume = data.resume || {};
+      if (data.settings.responses !== undefined) {
+        this.settings = data.settings;
+      } else {
+        this.settings = this.defaultSettings();
+      }
+    } else {
+      this.list = [];
+      this.resume = {};
+      this.settings = this.defaultSettings();
+    }
+    return this;
+  }
+
+  get(query = '') {
+
+    let result;
+    let channel_name;
+    // if there is at least one channel
+    if (this.list.length > 0) {
+      let channelSearch = fuzzy(this.list, 'name');
+      [result] = channelSearch(query);
+      // channel search
+      if (query && result) {
+        channel_name = result.name;
+        // check progress
+        if (result.progress) {
+          result = result.progress;
+        } else {
+          if (result.shuffle) {
+            // random item
+            result = randomItem(result.items);
+            result.channel = result.name;
+          } else {
+            // first item
+            result = result.items[0];
+          }
+        }
+
+        if (result.name) {
+          result.channel = channel_name || '';
+          result.token = `${result.name}:${result.channel}`;
+        }
+
+        return result;
+      }
+      // station search
+      else {
+        for (const channel of this.list) {
+          let stationSearch = fuzzy(channel.items, 'name');
+          [result] = stationSearch(query);
+
+          if (result !== undefined) {
+            result.channel = channel.name;
+            result.token = `${result.name}:${result.channel}`;
+            break;
+          }
+        }
+
+      }
+
+      if (result === undefined) {
+        // console.log(result);
+        result = 'not found'
+      }
+
+    } else {
+      // no saved channels
+      result = 'no data'
+      console.log('no saved data');
+
+    }
+
+    return result;
+  }
+
+  update(token, offset, status) {
+    let token_station = token.split(':')[0];
+    let token_channel = token.split(':')[1];
+    let station = this.get(token_station);
+
+    station.progress = offset;
+    station.status = status;
+
+    this.resume = station;
+
+    return this;
+  }
+
+  next(token) {
+
+    let item;
+    if (token) {
+      let channelSearch = fuzzy(this.list, 'name');
+      let [channel] = channelSearch(token.split(':')[1]);
+
+      if (channel) {
+        channel.items.map((_item, index) => {
+          if (_item.name == token.split(':')[0]) {
+            // check shuffle
+            if (channel.shuffle) {
+              item = randomItem(channel.items);
+            } else {
+              item = channel.items[index + 1];
+            }
+          }
+        })
+
+        if (item) {
+          item.channel = channel.name;
+        }
+      }
+
+    }
+
+    console.log('item:', item);
+    return item;
+  }
+
+  response(type) {
+    let res = '';
+
+    switch (type) {
+      case 'playing':
+        res = randomItem(this.settings.responses.now_playing);
+        res = res ? res : 'Here is ';
+        break;
+      case 'stop':
+        res = randomItem(this.settings.responses.stop_playing);
+        res = res ? res : 'Goodbye!';
+        break;
+      case 'next':
+        res = randomItem(this.settings.responses.next_playing);
+        res = res ? res : 'Next up is - ';
+        break;
+      case 'help':
+        res = randomItem(this.settings.responses.help_playing);
+        // console.log(this.settings.responses);
+        break;
+      case 'error':
+        res = randomItem(this.settings.responses.error_playing);
+        res = res ? res : 'Sorry, something went wrong.';
+        break;
+      case 'nodata':
+        res = randomItem(this.settings.responses.no_data);
+        res = res ? res : "You don't have any saved channels. Go to web page to add a channel.";
+        break;
+      default:
+        res = 'Thousand apologies, something went wrong.';
+        break;
+    }
+
+    return res;
+  }
+
+  // save object data
+  data() {
+    return {
+      list: this.list,
+      resume: this.resume,
+      settings: this.settings
     }
   }
 }
 
+// HELPERS //
+const fuzzy = (items, key) => {
+  return (query) => {
+    query = query.replace(/\'|!|\?/gim, '')
+    let words = query.toLowerCase().split(' ');
+    return items.filter((item) => {
+      let normalizedTerm = item[key].toLowerCase();
+      normalizedTerm = normalizedTerm.replace(/\'|!|\?/gim, '');
+      return words.every((word) => {
+        return (normalizedTerm.indexOf(word) > -1);
+      });
+    });
+  };
+};
+
+// Pick a random item from an array
+const randomItem = (arrayOfItems) => {
+
+  try {
+    let type = typeof arrayOfItems;
+
+    let iLen = arrayOfItems.length;
+    let key = 0;
+    let keys;
+
+    if (type === 'object') {
+      keys = Object.keys(arrayOfItems);
+      iLen = keys.length;
+    }
+
+    key = Math.floor(Math.random() * iLen);
+
+    let rand_item = arrayOfItems[keys[key]];
+    rand_item.index = key;
+    return rand_item;
+  } catch (error) {
+    console.log('random item:', error.message);
+    return '';
+  }
+
+};
+
+function getUserURL(context) {
+  let identifier = context.service.identifier;
+  let user = identifier.split('.')[0];
+  let service = identifier.split('.')[1].replace(/\[|\]/gmi, '');
+
+  return `https://${user}.api.stdlib.com/${service}/`;
+}
+// Save data to local storage or elsewehere
+async function saveData(savedData) {
+  await db.set({
+    key: 'channels',
+    value: savedData
+  });
+}
+// HELPERS END //
+
 const LaunchRequestIntentHandler = async (requestEnvelope) => {
-  // Alexa response object
-  let response = {};
+
   // Alexa custom responses
-  let now_playing = speech('playing');
+  let now_playing = collection.response('playing');
+  let station = collection.get();
 
-  let session_attributes = {};
-
-  let station = await getStation();
-
-  if (station) {
-    response = stationResponse(station, now_playing);
+  if (station.name) {
+    Alexa
+      .speak(`${now_playing} - ${station.name}, from ${station.channel}.`)
+      .card(station.name, station.channel, `${user_url}assets?asset=background`)
+      .play(user_url, station.url, station.progress, station.token)
     // save session attributes
-    session_attributes = { token: station };
+    Alexa.sessionAttributes = { token: station };
 
   } else {
     // If no station found, prompt to add channel
-    response.speak = Alexa.speak(`You don't have any saved channels. Go to the web page to add a channel.`);
+    Alexa.speak(`You don't have any saved channels. Go to web page to add a channel.`);
   }
 
-  return Alexa.getResponse(response, session_attributes);
+  return Alexa;
 }
 
 const IntentRequestHandler = async (requestEnvelope) => {
 
   let intent = requestEnvelope.request.intent;
-  let intentName = getIntentName(requestEnvelope);
+  let intentName = intent.name.split('.')[1] || intent.name;
 
+  console.log('intentName:', intentName);
   let response;
 
   switch (intentName) {
@@ -231,7 +454,14 @@ const IntentRequestHandler = async (requestEnvelope) => {
       break;
 
     case 'StopIntent':
-      // console.log(`stop intent`);
+      response = StopIntentHandler(requestEnvelope);
+      break;
+
+    case 'PauseIntent':
+      response = StopIntentHandler(requestEnvelope);
+      break;
+
+    case 'CancelIntent':
       response = StopIntentHandler(requestEnvelope);
       break;
 
@@ -239,11 +469,39 @@ const IntentRequestHandler = async (requestEnvelope) => {
       response = NextIntentHandler(requestEnvelope);
       break;
 
+    case 'PreviousIntent':
+      response = NotSupportedIntentHandler(requestEnvelope);
+      break;
+
+    case 'ResumeIntent':
+      response = ResumeIntentHandler(requestEnvelope);
+      break;
+
+    case 'LoopOffIntent':
+      response = NotSupportedIntentHandler(requestEnvelope);
+      break;
+    case 'LoopOnIntent':
+      response = NotSupportedIntentHandler(requestEnvelope);
+      break;
+    case 'RepeatIntent':
+      response = NotSupportedIntentHandler(requestEnvelope);
+      break;
+    case 'StartOverIntent':
+      response = NotSupportedIntentHandler(requestEnvelope);
+      break;
+    case 'ShuffleOffIntent':
+      response = NotSupportedIntentHandler(requestEnvelope);
+      break;
+    case 'ShuffleOnIntent':
+      response = NotSupportedIntentHandler(requestEnvelope);
+      break;
+
     case 'HelpIntent':
       response = HelpIntentHandler(requestEnvelope);
       break;
 
     default:
+      console.log('default:', intentName);
       response = ErrorHandler();
       break;
   }
@@ -253,86 +511,112 @@ const IntentRequestHandler = async (requestEnvelope) => {
 
 const PlayRadioIntentHandler = async (requestEnvelope) => {
   try {
-    let response = {};
+    if (collection.list.length > 0) {
 
-    // collection = await db.get({
-    //   key: 'channels'
-    // });
+      let now_playing = collection.response('playing');
+      let slot = getSlotValues(requestEnvelope);
+      let station = collection.get(slot.station);
 
-    let now_playing = speech('playing');
-
-    let slot = getSlotValues(requestEnvelope);
-    console.log('PlayRadioIntentHandler search term:', slot.station);
-
-    let station;
-
-    if (slot.station) {
-      station = await getStation(slot.station);
-
-      if (station) {
-        response = stationResponse(station, now_playing);
+      if (station.name) {
+        Alexa.sessionAttributes = { token: station };
+        Alexa
+          .speak(`${now_playing} ${station.name} from ${station.channel}.`)
+          .play(user_url, station.url, station.progress, station.token)
+      } else if (station === 'not found') {
+        Alexa
+          .speak(`Sorry, ${slot.station} was not found`);
       } else {
-        response.speak = Alexa.speak(`Sorry, ${slot.station} was not found`);
+        Alexa.speak(collection.response('nodata'));
       }
+      return Alexa;
     } else {
-      station = await getStation();
-      response = stationResponse(station, now_playing);
+      Alexa.speak(collection.response('nodata'));
+      return Alexa;
     }
 
-    let session_attributes = { token: station };
-    return Alexa.getResponse(response, session_attributes);
   } catch (error) {
-    let slot = getSlotValues(requestEnvelope);
-    let response = {};
-    response.speak = Alexa.speak(`Sorry, I couldn't find ${slot.station} in your collection`);
-    return Alexa.getResponse(response);
+    console.log('PlayRadioIntentHandler:Error - ', error);
+    Alexa.speak('error: ' + error.message);
+    return Alexa;
   }
 }
 
 const StopIntentHandler = (requestEnvelope) => {
-  console.log('stop intent:', requestEnvelope.request.intent);
-  let response = {};
-  let stop_playing = speech('stop');
 
-  response.speak = Alexa.speak(stop_playing);
-  response.audioStop = Alexa.audioHandler.stop();
-  return Alexa.getResponse(response);
+  Alexa
+    .speak(collection.response('stop'))
+    .stop();
+
+  return Alexa;
 }
 
 const NextIntentHandler = async (requestEnvelope) => {
 
-  let response = {};
-  let next_playing = speech('next');
+  // let next_playing = speech('next');
+  try {
+    let token = requestEnvelope.context.AudioPlayer.token;
+    let next_item = collection.next(token);
 
-  let token = requestEnvelope.context.AudioPlayer.token;
-  let current_station = token.split(':')[0];
-  let current_channel = token.split(':')[1];
+    if (next_item) {
+      Alexa
+        .speak(`Next up is ${next_item.name}`)
+        .play(user_url, next_item.url, next_item.progress, next_item.token);
+    } else {
+      Alexa
+        .speak(`There is nothing to play next.`);
+    }
+    console.log('nextIntentHandler :', JSON.stringify(Alexa));
+    return Alexa;
 
-  let getChannel = fuzzy(collection.list, 'name');
-  let channel = getChannel(current_channel);
+  } catch (error) {
+    console.log('nextError:', error);
+    Alexa
+      .speak(`Something went wrong playing the next track.`);
 
-  let station;
+    return Alexa;
+  }
+}
 
-  if (channel.length) {
-    station = pickStation(channel[0], 'next', current_station);
-    response = stationResponse(station, next_playing);
+const ResumeIntentHandler = async (requestEnvelope) => {
+
+  if (collection.resume) {
+    let station = collection.resume;
+    Alexa
+      .speak(`resuming ${station.name}`)
+      .play('userurl/', station.url, station.progress, `${station.channel}:${station.name}`);
   } else {
-    channel = randomItem(collection.list);
-    station = randomItem(channel.items);
-    station.channel = channel.name;
-    response = stationResponse(station, next_playing);
+    Alexa.speak('There is nothing to resume.')
   }
 
-  return Alexa.getResponse(response);
+  return Alexa;
+}
+
+const ShuffleOnIntentHandler = async (requestEnvelope) => {
+
+  if (collection.resume) {
+    let station = collection.resume;
+    Alexa
+      .speak(`resuming ${station.name}`)
+      .play('userurl/', station.url, station.progress, `${station.channel}:${station.name}`);
+  } else {
+    Alexa.speak('There is nothing to resume.')
+  }
+
+  return Alexa;
 }
 
 const HelpIntentHandler = () => {
-  let response = {};
-  let help_playing = speech('help');
 
-  response.speak = Alexa.speak(help_playing);
-  response.prompt = Alexa.prompt('What channel or station do you want to play?');
-  return Alexa.getResponse(response);
+  if (collection.list.length > 0) {
+    Alexa
+      .speak('You can search by channel or station name. Tell me a station or a channel to play.')
+      .prompt('What channel or station do you want to play?');
+  } else {
+    Alexa
+      .speak("You don't have any saved channels. Go to web page to add a channel.");
+  }
+
+  return Alexa;
 }
 
 const SessionEndedRequestHandler = (requestEnvelope) => {
@@ -342,292 +626,63 @@ const SessionEndedRequestHandler = (requestEnvelope) => {
   } else {
     console.log('SessionEnded:');
   }
-  return Alexa.getResponse();
+  return Alexa;
 }
 
 const ErrorHandler = () => {
-  let response = {};
-  let error_playing = speech('error');
-
-  response.speak = Alexa.speak(error_playing);
-  response.prompt = Alexa.prompt('What channel or station do you want to play?');
-  return Alexa.getResponse(response);
+  Alexa.speak(collection.response('error'));
+  return Alexa;
 }
+
+const NotSupportedIntentHandler = (requestEnvelope) => {
+  let intentName = requestEnvelope.request.intent.name.split('.')[1] || requestEnvelope.request.intent.name;
+
+  Alexa.speak(`${intentName} is not currently supported.`);
+
+  return Alexa;
+}
+
 
 const AudioPlayerEventHandler = async (requestEnvelope) => {
   // Get collection;
   const audioPlayerEventName = requestEnvelope.request.type.split(".")[1];
-
-  let response = {};
+  console.log('audioPlayerEventName: ', audioPlayerEventName);
   let token = requestEnvelope.request.token;
   let offset = requestEnvelope.request.offsetInMilliseconds;
 
   switch (audioPlayerEventName) {
     case "PlaybackStarted":
-      await updateCollection(token, offset, 'streamable');
+      collection.update(token, offset, 'streamable');
+      await saveData(collection.data());
       break;
     case "PlaybackFinished":
       console.log("AudioPlayerEventHandler -> PlaybackFinished", token);
       break;
     case "PlaybackStopped":
-      await updateCollection(token, offset, 'streamable');
+      collection.update(token, offset, 'streamable');
+      await saveData(collection.data());
       break;
     case "PlaybackNearlyFinished": {
-
-      let current_station = token.split(':')[0];
-      let current_channel = token.split(':')[1];
-
-      let getChannel = fuzzy(collection.list, 'name');
-      let channel = getChannel(current_channel);
-
-      let station;
-
-      if (channel.length) {
-        station = pickStation(channel[0], 'next', current_station);
-        console.log("PlaybackNearlyFinished -> queing up:", station.name);
-      }
-
-      if (station) {
+      let station = collection.next(token);
+      if (station.name) {
         station.token = `${station.name}:${station.channel}`;
-        response.audioPlay = Alexa.audioHandler.queue(station.url, station.progress, station.token, token);
-
+        Alexa.queue(user_url, station.url, station.progress, station.token, token);
       } else {
-        console.log("AudioPlayerEventHandler -> PlaybackNearlyFinished - ", token + ": Next station not found");
+        console.log("PlaybackNearlyFinished - ", token + ": Next station not found");
       }
-
       break;
     }
     case "PlaybackFailed":
       console.log(`PlaybackFailed - ${requestEnvelope.request.token} - error: ${requestEnvelope.request.error.message}`);
-      response.audioPlay = Alexa.audioHandler.play(`${user_url}assets?asset=failed`, 0, 'error');
-      await updateCollection(token, offset, 'failed');
+
+      Alexa.play(user_url, `${user_url}assets?asset=failed`, 0, 'error');
+      collection.update(token, offset, 'failed');
+      await saveData(collection.data());
       break;
   }
 
   // console.log('AudioResponse', response);
-  return Alexa.getResponse(response);
-}
-
-const getStation = async (query) => {
-  try {
-
-    let channel;
-    let station;
-
-    if (query) {
-      let searchByChannel = fuzzy(collection.list, 'name');
-      channel = searchByChannel(query);
-
-      if (channel.length) {
-        station = pickStation(channel[0]);
-        station.channel = channel[0].name;
-      } else {
-        station = searchByStation(query);
-      }
-    } else {
-      // check collection.resume
-      if (collection.resume && collection.resume.name) {
-        station = collection.resume;
-      } // No resume
-      else {
-        channel = randomItem(collection.list);
-        station = pickStation(channel);
-        station.channel = channel.name;
-      }
-    }
-    return station;
-
-    function searchByStation(query) {
-      let found_stations = [];
-      collection.list.map(channel => {
-        let searchStation = fuzzy(channel.items, 'name');
-        let station = searchStation(query);
-
-        if (station.length) {
-          station[0].channel = channel.name;
-          found_stations.push(station[0]);
-        }
-
-      });
-      return found_stations[0];
-    }
-
-  } catch (error) {
-    console.log('error: getStation - ', error.message);
-    return null;
-  }
-}
-
-function pickStation(channel, type, current_station) {
-  try {
-    let other_stations = [];
-    let station;
-
-    if (type == 'next') {
-
-      if (channel.shuffle) {
-        for (const key of channel.items) {
-          if (key.name != current_station) {
-            other_stations.push(key);
-          }
-        }
-        station = randomItem(other_stations);
-        station.channel = channel.name;
-      } else {
-
-        for (let i = 0; i < channel.items.length; i++) {
-          const item = channel.items[i];
-
-          if (item.name == current_station) {
-            let next_item = channel.items[i + 1] || '';
-            next_item.channel = channel.name;
-
-            if (next_item) {
-              station = next_item;
-            } else {
-              station = channel.items[0];
-              station.channel = channel.name;
-            }
-          }
-        }
-      }
-
-      return station;
-    } else {
-      if (channel.progress) {
-        station = channel.progress;
-        station.channel = channel.name;
-        return station;
-      } else {
-        if (channel.shuffle) {
-          station = randomItem(channel.items);
-          station.channel = channel.name;
-          return station;
-        } else {
-
-          station = channel.items[0];
-          station.channel = channel.name;
-          return station;
-        }
-      }
-    }
-
-  } catch (error) {
-    console.log('error - pickStation - ', error.message);
-  }
-}
-
-function stationResponse(station, speak) {
-  let response = {};
-  station.token = `${station.name}:${station.channel}`;
-  // check progress
-  station.progress = station.progress ? station.progress : 0;
-  // set Alexa reply
-  response.speak = Alexa.speak(`${speak} - ${station.name}, from ${station.channel}.`);
-  // Set station audio directive
-  response.audioPlay = Alexa.audioHandler.play(station.url, station.progress, station.token);
-
-  return response;
-}
-
-// speech options
-function speech(response_type) {
-
-  let response = '';
-
-  try {
-    switch (response_type) {
-      case 'playing':
-        response = randomItem(collection.settings.responses.now_playing);
-        response = response ? response : 'Here is ';
-        break;
-      case 'stop':
-        response = randomItem(collection.settings.responses.stop_playing);
-        response = response ? response : 'Goodbye!';
-        break;
-      case 'next':
-        response = randomItem(collection.settings.responses.next_playing);
-        response = response ? response : 'Next up is - ';
-        break;
-      case 'help':
-
-        break;
-      case 'error':
-        response = randomItem(collection.settings.responses.error_playing);
-        response = response ? response : '';
-        break;
-
-      default:
-        response = '';
-        break;
-    }
-
-  } catch (error) {
-    response = '';
-  }
-
-  return response;
-}
-
-// updateCollection
-async function updateCollection(token, offset = 0, status) {
-
-  let current_station = token.split(':')[0];
-  let current_channel = token.split(':')[1];
-  console.log("TCL: updateCollection -> current_station", current_station, current_channel);
-
-  collection = await db.get({
-    key: 'channels'
-  });
-
-  for (let i = 0; i < collection.list.length; i++) {
-    const channel = collection.list[i];
-
-    if (channel.name == current_channel) {
-      for (let j = 0; j < channel.items.length; j++) {
-        const station = channel.items[j];
-        if (station.name == current_station) {
-          station.status = status;
-          station.progress = offset;
-          station.channel = channel.name;
-          channel.progress = station;
-          collection.resume = station;
-        }
-      }
-    }
-  }
-
-  let response = await db.set({
-    key: 'channels',
-    value: collection
-  });
-
-  console.log('updated database:', response);
-
-}
-
-const getIntentName = (requestEnvelope) => {
-
-  let intentName = requestEnvelope.request.intent.name || '';
-
-  if (intentName === 'AMAZON.CancelIntent' ||
-    intentName ===
-    'AMAZON.StopIntent' ||
-    intentName ===
-    'AMAZON.PauseIntent') {
-    intentName = 'StopIntent';
-  }
-
-  if (intentName === 'AMAZON.NextIntent') {
-    intentName = 'NextIntent';
-  }
-
-  if (intentName === 'AMAZON.HelpIntent') {
-    intentName = 'HelpIntent';
-  }
-
-  return intentName;
-
+  return Alexa;
 }
 
 const getSlotValues = (requestEnvelope) => {
@@ -676,7 +731,8 @@ const getSlotValues = (requestEnvelope) => {
       slots[item].resolutions.resolutionsPerAuthority[0].status.code) {
       switch (slots[item].resolutions.resolutionsPerAuthority[0].status.code) {
         case 'ER_SUCCESS_MATCH':
-          slot_values[name] = slots[item].resolutions.resolutionsPerAuthority[0].values[0].value.id;
+          // slot_values[name] = slots[item].resolutions.resolutionsPerAuthority[0].values[0].value.id;
+          slot_values[name] = slots[item].resolutions.resolutionsPerAuthority[0].values[0].value.name;
           break;
         case 'ER_SUCCESS_NO_MATCH':
           slot_values[name] = slots[item].value;
@@ -692,85 +748,92 @@ const getSlotValues = (requestEnvelope) => {
   return slot_values;
 }
 
-const fuzzy = (items, key) => {
-  return (query) => {
-    query = query.replace(/\'|!|\?/gim, '')
-    let words = query.toLowerCase().split(' ');
-    return items.filter((item) => {
-      let normalizedTerm = item[key].toLowerCase();
-      normalizedTerm = normalizedTerm.replace(/\'|!|\?/gim, '');
-      return words.every((word) => {
-        return (normalizedTerm.indexOf(word) > -1);
-      });
-    });
-  };
-};
-
-// Pick a random item from an array
-const randomItem = (arrayOfItems) => {
-
-  try {
-    let type = typeof arrayOfItems;
-
-    let iLen = arrayOfItems.length;
-    let key = 0;
-    let keys;
-
-    if (type === 'object') {
-      keys = Object.keys(arrayOfItems);
-      iLen = keys.length;
-    }
-
-    key = Math.floor(Math.random() * iLen);
-
-    let rand_item = arrayOfItems[keys[key]];
-    rand_item.index = key;
-    return rand_item;
-  } catch (error) {
-    console.log('random item:', error.message);
-    return '';
-  }
-
-};
-
+let Alexa = new AlexaResponses();
+const collection = new Collection();
+/**
+* Sends an Allexa Response
+* @returns {object.http} Object The result
+*/
 module.exports = async (context) => {
 
   try {
+    await verifier(
+      context.http.headers.signaturecertchainurl,
+      context.http.headers.signature,
+      context.http.body
+    )
 
-    let identifier = context.service.identifier;
-    let user = identifier.split('.')[0];
-    let service = identifier.split('.')[1].replace(/\[|\]/gmi, '');
+    Alexa = new AlexaResponses();
+    user_url = getUserURL(context);
 
-    user_url = `https://${user}.api.stdlib.com/${service}/`;
-
-    collection = await db.get({
+    // get saved data
+    let saved_data = await db.get({
       key: 'channels'
     });
 
+    collection.load(saved_data);
+
     let requestEnvelope = context.params;
-    let requestType = requestEnvelope.request.type;
-    // console.log("TCL: requestType", requestType)
-    let intent = requestEnvelope.request.intent || {};
-    let response = {};
+    // console.log("requestEnvelope", requestEnvelope.request);
 
-    // console.log("requestType", requestType);
-    if (requestType === 'LaunchRequest') {
-      response = await LaunchRequestIntentHandler(requestEnvelope);
-    } else if (requestType.startsWith("AudioPlayer.")) {
-      response = await AudioPlayerEventHandler(requestEnvelope);
-    } else if (requestType === 'IntentRequest') {
-      response = await IntentRequestHandler(requestEnvelope);
-    } else if (requestType === 'SessionEndedRequest') {
-      response = SessionEndedRequestHandler(requestEnvelope);
+    if (requestEnvelope.request) {
+      let requestType = requestEnvelope.request.type;
+      console.log("type", requestEnvelope.request.type);
+      // let intent = requestEnvelope.request.intent || {};
+
+      let response = {};
+
+      // console.log("requestType", requestType);
+      if (requestType === 'LaunchRequest') {
+        response = await LaunchRequestIntentHandler(requestEnvelope);
+      } else if (requestType.startsWith("AudioPlayer.")) {
+        response = await AudioPlayerEventHandler(requestEnvelope);
+      } else if (requestType === 'IntentRequest') {
+        response = await IntentRequestHandler(requestEnvelope);
+      } else if (requestType === 'SessionEndedRequest') {
+        response = SessionEndedRequestHandler(requestEnvelope);
+      } else {
+        response = ErrorHandler(requestEnvelope);
+      }
+
+      // console.log("response", JSON.stringify(response));
+      // return response;
+      let resObj = {
+        statusCode: 200,
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(response)
+      }
+
+      // console.log('resObj:', resObj);
+      return resObj;
+
     } else {
-      response = ErrorHandler(requestEnvelope);
+      let response = ErrorHandler(context.params);
+
+      let resObj = {
+        statusCode: 200,
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(response)
+      }
+
+      console.log('resObjElse:', JSON.stringify(resObj));
+      return resObj;
     }
-    return response;
-
   } catch (error) {
-    console.log('Error:', error);
     let response = ErrorHandler(context.params);
-    return response;
-  }
+    let resObj = {
+      statusCode: 400,
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(response)
+    }
 
-};
+    console.log('resObjError:', error);
+    return resObj;
+  }
+}

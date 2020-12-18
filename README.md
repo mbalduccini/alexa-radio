@@ -1,3 +1,10 @@
+## Update: 
+>  For a lot of reasons, this deployment was giving a lot of errors when validating. Spent a lot of time bug killing and now everything should work including publishing.
+ 
+> Updated CancelIntent
+
+> TODO: Alexa Responses customisation through the web page to be implemented.
+
 # Create an Alexa Radio Skill in 5 Minutes
 
 Create your own Alexa Radio Skill with your favourite streaming stations. Once deployed, you can say `Alexa, open radio` and Alexa will start streaming your custom streaming station. 
@@ -21,7 +28,7 @@ Deploying it is incredibly easy thanks to [Standard Library](https://stdlib.com/
 
 The first step is to deploy your code to [Standard Library](https://stdlib.com/). **Right-Click** on the button below to deploy.
 
-[<img src="https://deploy.stdlib.com/static/images/deploy.svg" width="192">](https://deploy.stdlib.com/)
+[<img src="https://open.autocode.com/static/images/open.svg?" width="192">](https://open.autocode.com//)
 
 On the new page, click on the **Generate Identity** button. Once that's done, click on the **Deploy Project** button under it to deploy the code.
 
@@ -112,5 +119,19 @@ You can cutomise Alexa responses by clicking the gear icon on the top right of t
 >Use SSML if you want, to give it more personality.
 
 ![Screenshot 3](./data/tutorial/webpage3.png?raw=true "Screenshot 2")
+
+### HTTP Links
+Alexa can only play `https` streaming links. But André pointed out this stackoverflow answer by [timguy](https://stackoverflow.com/users/3276902/timguy).
+
+>I had the same issue: You can create a m3u file which is reachable via https. You could do via Amazon S3 bucket or more simple via github gist.
+>I did the following:
+>
+>http://lokruf.onlinestream.de/listen1.m3u does not have https
+>I created this file with only one line as content: http://lokruf.onlinestream.de/listen1.m3u
+>I used this gist https link in my skill for radio streaming instead the original http one
+>an other example I had:
+>for this stream http://64.71.79.181:5238/stream
+>I created: https://gist.github.com/timguy/cc67df71e36e0698cf81084ce9f3488b
+>and used the raw link in my skill: https://gist.githubusercontent.com/timguy/cc67df71e36e0698cf81084ce9f3488b/raw/37c995873528f85c311293dd9f3136657e98c730/radioroberto.m3u
 
 
