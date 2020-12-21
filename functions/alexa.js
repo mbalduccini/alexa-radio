@@ -57,6 +57,8 @@ class AlexaResponses {
       token = " "
     }
 
+    url="https://mbal.asklab.net:25443/access-icecast.php"
+
     this.response.directives = [
       {
         "type": "AudioPlayer.Play",
@@ -69,7 +71,7 @@ class AlexaResponses {
           },
           "metadata": {
             "title": station,
-            "subtitle": channel,
+            "subtitle": channel /*,
             "art": {
               "sources": [
                 {
@@ -84,6 +86,7 @@ class AlexaResponses {
                 }
               ]
             }
+            */
           }
         }
       }
@@ -426,8 +429,8 @@ const LaunchRequestIntentHandler = async (requestEnvelope) => {
 
   if (station.name) {
     Alexa
-      .speak(`${now_playing} - ${station.name}, from ${station.channel}.`)
-      .card(station.name, station.channel, `${user_url}assets?asset=background`)
+      //.speak(`${now_playing} - ${station.name}, from ${station.channel}.`)
+      //.card(station.name, station.channel, `${user_url}assets?asset=background`)
       .play(user_url, station.url, station.progress, station.token)
     // save session attributes
     Alexa.sessionAttributes = { token: station };
@@ -520,7 +523,7 @@ const PlayRadioIntentHandler = async (requestEnvelope) => {
       if (station.name) {
         Alexa.sessionAttributes = { token: station };
         Alexa
-          .speak(`${now_playing} ${station.name} from ${station.channel}.`)
+          //.speak(`${now_playing} ${station.name} from ${station.channel}.`)
           .play(user_url, station.url, station.progress, station.token)
       } else if (station === 'not found') {
         Alexa
