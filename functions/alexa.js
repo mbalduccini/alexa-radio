@@ -57,7 +57,8 @@ class AlexaResponses {
       token = " "
     }
 
-    url="https://mbal.asklab.net:25443/access-icecast.php"
+    url=URL OF access-icecast.php+"?rnd="+Date.now()
+    console.log("in play(): using url "+url);
 
     this.response.directives = [
       {
@@ -429,7 +430,7 @@ const LaunchRequestIntentHandler = async (requestEnvelope) => {
 
   if (station.name) {
     Alexa
-      //.speak(`${now_playing} - ${station.name}, from ${station.channel}.`)
+      .speak(`playing your stream`) //${now_playing} - ${station.name}, from ${station.channel}.`)
       //.card(station.name, station.channel, `${user_url}assets?asset=background`)
       .play(user_url, station.url, station.progress, station.token)
     // save session attributes
@@ -524,6 +525,7 @@ const PlayRadioIntentHandler = async (requestEnvelope) => {
         Alexa.sessionAttributes = { token: station };
         Alexa
           //.speak(`${now_playing} ${station.name} from ${station.channel}.`)
+          .speak(`playing your stream`)
           .play(user_url, station.url, station.progress, station.token)
       } else if (station === 'not found') {
         Alexa
