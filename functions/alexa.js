@@ -444,7 +444,7 @@ const LaunchRequestIntentHandler = async (requestEnvelope) => {
   return Alexa;
 }
 
-const IntentRequestHandler = async (requestEnvelope) => {
+const IntentRequestHandler = async (requestEnvelope,context) => {
 
   let intent = requestEnvelope.request.intent;
   let intentName = intent.name.split('.')[1] || intent.name;
@@ -506,6 +506,42 @@ const IntentRequestHandler = async (requestEnvelope) => {
 
     default:
       console.log('default:', intentName);
+// [MB] HACK: Amazon is no longer supporting our SSL certificate, and so "mister john" stopped working.
+//            So, we set mister john's endpoint to alexa radio's autocode and from there we proxy to coSAT
+//console.log('params:', context.params);
+//console.log('headers:', context.http.headers);
+//console.log('body:', context.http.body);
+//console.log('method:', context.http.method);
+//console.log('requestEnvelope='+requestEnvelope);
+
+// SOURCE: https://autocode.com/lib/http/request/
+// Using Node.js 12.x +
+// use "lib" package from npm
+const lib = require('lib')({token: null /* link an account to create an identity */});
+
+// make API request
+let myresult = await lib.http.request['@1.1.5']({
+  method: context.http.method,
+  url: URL OF NODERED`/nodered/alexa/`,
+  headers: //context.http.headers,
+  {
+      'content-type': `application/json; charset=utf-8`
+    },
+  body: context.http.body
+});
+//console.log('answer: ');
+//console.log(myresult);
+//console.log("==========");
+//console.log('answer body: ');
+//console.log(myresult.body);
+//console.log("----------");
+//console.log(JSON.parse(myresult.body));
+//console.log("==========");
+
+//response=Alexa.speak(`Hey, it's me'`);
+response=JSON.parse(myresult.body);
+break;
+// end MB
       response = ErrorHandler();
       break;
   }
@@ -794,7 +830,7 @@ module.exports = async (context) => {
       } else if (requestType.startsWith("AudioPlayer.")) {
         response = await AudioPlayerEventHandler(requestEnvelope);
       } else if (requestType === 'IntentRequest') {
-        response = await IntentRequestHandler(requestEnvelope);
+        response = await IntentRequestHandler(requestEnvelope,context);
       } else if (requestType === 'SessionEndedRequest') {
         response = SessionEndedRequestHandler(requestEnvelope);
       } else {
