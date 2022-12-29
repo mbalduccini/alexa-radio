@@ -2,6 +2,11 @@ const verifier = require('alexa-verifier');
 
 const db = require('lib')({ token: process.env.STDLIB_SECRET_TOKEN }).utils.kv;
 
+//const ICECAST_URL="https://mbal.asklab.net:25443/access-icecast.php";
+const ICECAST_URL="https://stream.asklab.net:8442/access-icecast.php";
+
+const NODERED_ALEXA_ADDRESS=`www.asklab.net/nodered/alexa/`;
+
 // Global variable of collection
 let user_url = '';
 
@@ -57,7 +62,7 @@ class AlexaResponses {
       token = " "
     }
 
-    url=URL OF access-icecast.php+"?rnd="+Date.now()
+    url=ICECAST_URL+"?rnd="+Date.now()
     console.log("in play(): using url "+url);
 
     this.response.directives = [
@@ -522,17 +527,17 @@ const lib = require('lib')({token: null /* link an account to create an identity
 // make API request
 let myresult = await lib.http.request['@1.1.5']({
   method: context.http.method,
-  url: URL OF NODERED`/nodered/alexa/`,
+  url: NODERED_ALEXA_ADDRESS, //`www.asklab.net/nodered/alexa/`,
   headers: //context.http.headers,
   {
       'content-type': `application/json; charset=utf-8`
     },
   body: context.http.body
 });
-//console.log('answer: ');
+//console.log('asklab answer: ');
 //console.log(myresult);
 //console.log("==========");
-//console.log('answer body: ');
+//console.log('asklab answer body: ');
 //console.log(myresult.body);
 //console.log("----------");
 //console.log(JSON.parse(myresult.body));
@@ -545,6 +550,55 @@ break;
       response = ErrorHandler();
       break;
   }
+
+  return response;
+}
+
+const CanFulfillIntentRequestHandler = async (requestEnvelope,context) => {
+
+  let intent = requestEnvelope.request.intent;
+  let intentName = intent.name.split('.')[1] || intent.name;
+
+  console.log('in canfulfill: intentName:', intentName);
+  let response;
+
+      console.log('in canfulfill: default:', intentName);
+console.log('in canfulfill: body:');
+console.log(context.http.body);
+// [MB] HACK: Amazon is no longer supporting our SSL certificate, and so "mister john" stopped working.
+//            So, we set mister john's endpoint to alexa radio's autocode and from there we proxy to coSAT
+//console.log('params:', context.params);
+//console.log('headers:', context.http.headers);
+//console.log('body:', context.http.body);
+//console.log('method:', context.http.method);
+//console.log('requestEnvelope='+requestEnvelope);
+
+// SOURCE: https://autocode.com/lib/http/request/
+// Using Node.js 12.x +
+// use "lib" package from npm
+const lib = require('lib')({token: null /* link an account to create an identity */});
+
+// make API request
+let myresult = await lib.http.request['@1.1.5']({
+  method: context.http.method,
+  url: NODERED_ALEXA_ADDRESS, //`www.asklab.net/nodered/alexa/`,
+  headers: //context.http.headers,
+  {
+      'content-type': `application/json; charset=utf-8`
+    },
+  body: context.http.body
+});
+//console.log('asklab answer: ');
+//console.log(myresult);
+//console.log("==========");
+//console.log('asklab answer body: ');
+//console.log(myresult.body);
+//console.log("----------");
+//console.log(JSON.parse(myresult.body));
+//console.log("==========");
+
+//response=Alexa.speak(`Hey, it's me'`);
+response=JSON.parse(myresult.body);
 
   return response;
 }
@@ -831,7 +885,9 @@ module.exports = async (context) => {
         response = await AudioPlayerEventHandler(requestEnvelope);
       } else if (requestType === 'IntentRequest') {
         response = await IntentRequestHandler(requestEnvelope,context);
-      } else if (requestType === 'SessionEndedRequest') {
+} else if (requestType === 'CanFulfillIntentRequest') {
+      response = await CanFulfillIntentRequestHandler(requestEnvelope,context);
+            } else if (requestType === 'SessionEndedRequest') {
         response = SessionEndedRequestHandler(requestEnvelope);
       } else {
         response = ErrorHandler(requestEnvelope);
