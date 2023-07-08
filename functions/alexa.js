@@ -3,7 +3,10 @@ const verifier = require('alexa-verifier');
 const db = require('lib')({ token: process.env.STDLIB_SECRET_TOKEN }).utils.kv;
 
 //const ICECAST_URL="https://mbal.asklab.net:25443/access-icecast.php";
-const ICECAST_URL="https://stream.asklab.net:8442/access-icecast.php";
+//const ICECAST_URL="https://stream.asklab.net:8442/access-icecast.php";
+// starting at some point in 2023, Amazon required the use of port 443
+//const ICECAST_URL="https://stream.asklab.net/yourmount-mp3";
+const ICECAST_URL="https://stream.asklab.net/access-icecast.php";
 
 const NODERED_ALEXA_ADDRESS=`www.asklab.net/nodered/alexa/`;
 
@@ -62,8 +65,10 @@ class AlexaResponses {
       token = " "
     }
 
+    offset=0; // Sometimes we receive *huge* numbers from the caller. I don't think this is a real offset
+
     url=ICECAST_URL+"?rnd="+Date.now()
-    console.log("in play(): using url "+url);
+    console.log("in play(): using url "+url+"; token="+token+"; offset="+offset);
 
     this.response.directives = [
       {
