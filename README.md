@@ -1,4 +1,9 @@
 ## Update: 
+Autocode is being decommissioned. I attempted to resuscitate my Node-Red Alexa Node, but
+for some reason it does not publish the endpoint.
+So, I reimplemented the server-side of the Alexa radio skill in Python. See `PYTHON-REWRITE`.
+
+## Update: 
 >  For a lot of reasons, this deployment was giving a lot of errors when validating. Spent a lot of time bug killing and now everything should work including publishing.
  
 > Updated CancelIntent
