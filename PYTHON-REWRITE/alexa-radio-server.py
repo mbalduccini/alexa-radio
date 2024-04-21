@@ -1,9 +1,10 @@
-#
-# Run with python 3.9 on dssresearch
-#
-
 # https://stackoverflow.com/questions/19434947/python-respond-to-http-request
 # LOOK AT .write() HERE: https://gist.github.com/mendhak/eb22f70adf0f7e694bbcb4ef0b11b5a8
+
+
+# Info on Alexa protocol:
+#    https://developer.amazon.com/en-US/docs/alexa/custom-skills/request-and-response-json-reference.html
+
 
 #import SocketServer
 #from BaseHTTPServer import BaseHTTPRequestHandler
