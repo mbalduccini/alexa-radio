@@ -19,11 +19,19 @@ import signal
 import threading
 import json
 import time
+from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 
 DEBUG=False
 
-ICECAST_URL="https://stream.asklab.net/access-icecast.php"
+#ICECAST_URL="https://stream.asklab.net/access-icecast.php"
+ICECAST_URL="https://stream.asklab.net/access-icecast.php?type=mp3"
 version="1.0"
+
+def append_query_params(url, params):
+	parts = urlsplit(url)
+	query = dict(parse_qsl(parts.query, keep_blank_values=True))
+	query.update(params)
+	return urlunsplit(parts._replace(query=urlencode(query)))
 
 def shutdownEverything():
 	httpd.shutdown()
@@ -81,7 +89,7 @@ class MyHandler(BaseHTTPRequestHandler):
 			station="station"
 			channel=""
 
-		url=ICECAST_URL+"?rnd="+str(int(time.time() * 1000))
+		url=append_query_params(ICECAST_URL, {"rnd": str(int(time.time() * 1000))})
 
 		data={
 			"version": version,
